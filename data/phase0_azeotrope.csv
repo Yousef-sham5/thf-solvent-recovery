@@ -1,5 +1,5 @@
 prop_pkg,p_bar,t_azeo_c,x_azeo_thf,published_x,pct_diff,published_source
-NRTL,1.013,,,0.829,,AIDIC CET Vol. 61
-NRTL,8,,,0.655,,AIDIC CET Vol. 61
-UNIQUAC,1.013,,,0.829,,AIDIC CET Vol. 61
-UNIQUAC,8,,,0.655,,AIDIC CET Vol. 61
+NRTL,1,,,0.829,,AIDIC CET Vol. 61 (Aspen Plus with NRTL; Fig. 1)
+NRTL,8,,,0.655,,AIDIC CET Vol. 61 (Aspen Plus with NRTL; Fig. 1)
+UNIQUAC,1,,,0.829,,AIDIC CET Vol. 61 (Aspen Plus with NRTL; Fig. 1)
+UNIQUAC,8,,,0.655,,AIDIC CET Vol. 61 (Aspen Plus with NRTL; Fig. 1)
