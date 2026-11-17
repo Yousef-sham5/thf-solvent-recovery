@@ -13,6 +13,7 @@ Tetrahydrofuran (THF) is a common pharmaceutical solvent. Recovering it from wat
 
 ## Method (planned)
 
+- Simulator: DWSIM Patreon Edition 10.2.16 (Windows). Files in `flowsheets/` were saved with this version.
 - Feed: 6 wt% THF in water, 100 kmol/h (feed basis from the FOSSEE THF/water flowsheet based on Luyben 2008).
 - Column: 17 stages, feed on stage 13, total condenser.
 - Sweep: 9 pressures (1.013 to 8 bar) x 6 reflux ratios x 2 stage counts = 108 runs.
