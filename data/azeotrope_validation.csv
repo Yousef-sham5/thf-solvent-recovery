@@ -1,0 +1,7 @@
+property_package,P_bar,T_azeotrope,x_azeotrope,published_x,pct_diff (%),published_source
+NRTL,1,63.67,0.8342,0.829,0.63,AIDIC CET Vol. 61 (Aspen Plus with NRTL; Fig. 1)
+NRTL,8,137.19,0.65,0.655,0.76,AIDIC CET Vol. 61 (Aspen Plus with NRTL; Fig. 1)
+UNIQUAC,1,62.06,0.787,0.829,5.07,AIDIC CET Vol. 61 (Aspen Plus with NRTL; Fig. 1)
+UNIQUAC,8,133.97,0.633,0.655,3.36,AIDIC CET Vol. 61 (Aspen Plus with NRTL; Fig. 1)
+Wilson,1,63.69,0.8346,0.829,0.68,AIDIC CET Vol. 61 (Aspen Plus with NRTL; Fig. 1)
+Wilson,8,138.96,0.649,0.655,0.92,AIDIC CET Vol. 61 (Aspen Plus with NRTL; Fig. 1)
