@@ -52,6 +52,7 @@ The azeotrope is the minimum of the bubble curve (x = y, Gibbs-Konovalov). `src/
 3. **UNIQUAC predicts two liquid phases.** Its bubble temperature is flat from x = 0.04 to 0.83 at 1 bar, which by the phase rule means two liquids plus vapor. Real THF-water is miscible there and only splits in a closed loop around 344 to 410 K (Matouš et al. 1972, as cited in a thermal analysis study; Smith et al. 2016), so I ruled UNIQUAC out.
 4. **NRTL does the same on a smaller scale:** flat at 64.95 °C for x = 0.10 to 0.42 at 1 bar, matching the split its Gibbs energy of mixing predicts (0.096 to 0.422). My guess is the parameters were fitted to VLE data only.
 5. **Wilson can't predict two liquid phases** (Wilson 1964). It would miss a real split, but so does NRTL.
+6. **Peng-Robinson needs a fitted kij, and DWSIM has none for THF-water (kij = 0).** The FOSSEE DWSIM flowsheet of this process uses PR, so I ran it at 1.013 bar. The bubble point jumps from 94.96 °C at x = 0.11 to -65.85 °C at x = 0.12, the bubble and dew curves never meet, and the dew curve has a sharp minimum at y = 0.80 and 62.30 °C, the shape of vapor over two liquid phases. I ruled PR out and don't use that flowsheet as a reference. Data: `data/txy_pr_1.013bar.csv`.
 
 **Model for the column runs: Wilson.** It ties NRTL on composition and avoids NRTL's false liquid split.
 
@@ -88,6 +89,7 @@ Both models at all 9 sweep pressures (results in `data/azeotrope_by_pressure.csv
 - AIDIC CET Vol. 61: https://www.aidic.it/cet/17/61/235.pdf
 - ChemSep example flowsheet `THF_Water_iecr47p2681.fsd` (Luyben, Ind. Eng. Chem. Res. 2008, 47, 2681): http://www.chemsep.com/downloads
 - FOSSEE OpenModelica flowsheet of the same design (its abstract says mass fraction 0.06; its code uses mole fraction 0.06, as ChemSep does): https://om.fossee.in/chemical/flowsheeting-project/om-flowsheet-run/77
+- FOSSEE DWSIM flowsheet of the same process (Peng-Robinson package): https://dwsim.fossee.in/flowsheeting-project/dwsim-flowsheet-run/102
 - Wilson, G. M. J. Am. Chem. Soc. 1964, 86, 127: https://doi.org/10.1021/ja01056a002
 - Matouš, J. et al. Collect. Czech. Chem. Commun. 1972, 37, 2653: https://doi.org/10.1135/cccc19722653 (cited through the next two)
 - J. Chem. Eng. Data 2023, 68, 349: https://doi.org/10.1021/acs.jced.2c00593
