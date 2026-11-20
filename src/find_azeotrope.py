@@ -49,7 +49,7 @@ def find_azeotrope(x, tb):
       if j < len(signs) and signs[j] == 'pos':
         hits.append((k, j))
 
-  # stop early unless there is exactly one sign change
+  # one sign change means its fine, otherwise the values shall not pass
   if len(hits) == 0:
     print("No azeotrope found")
     return None, None, 0
