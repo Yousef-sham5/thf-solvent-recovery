@@ -52,7 +52,7 @@ The azeotrope is the minimum of the bubble curve (x = y, Gibbs-Konovalov). `src/
 3. **UNIQUAC predicts two liquid phases.** Its bubble temperature is flat from x = 0.04 to 0.83 at 1 bar, which by the phase rule means two liquids plus vapor. Real THF-water is miscible there and only splits in a closed loop around 344 to 410 K (Matouš et al. 1972, as cited in a thermal analysis study; Smith et al. 2016), so I ruled UNIQUAC out.
 4. **NRTL does the same on a smaller scale:** flat at 64.95 °C for x = 0.10 to 0.42 at 1 bar, matching the split its Gibbs energy of mixing predicts (0.096 to 0.422). My guess is the parameters were fitted to VLE data only.
 5. **Wilson can't predict two liquid phases** (Wilson 1964). It would miss a real split, but so does NRTL.
-6. **Peng-Robinson needs a fitted kij, and DWSIM has none for THF-water (kij = 0).** The FOSSEE DWSIM flowsheet of this process uses PR, so I ran it at 1.013 bar. The bubble point jumps from 94.96 °C at x = 0.11 to -65.85 °C at x = 0.12, the bubble and dew curves never meet, and the dew curve has a sharp minimum at y = 0.80 and 62.30 °C, the shape of vapor over two liquid phases. I ruled PR out and don't use that flowsheet as a reference. Data: `data/txy_pr_1.013bar.csv`.
+6. **Peng-Robinson needs a fitted kij, and DWSIM has none for THF-water (kij = 0).** The FOSSEE DWSIM flowsheet of this process uses PR, so I ran it at 1.013 bar. The bubble point jumps from 94.96 °C at x = 0.11 to -65.85 °C at x = 0.12, the bubble and dew curves never meet, and the dew curve has a sharp minimum at y = 0.80 and 62.30 °C, the shape of vapor over two liquid phases. I ruled PR out and don't use that flowsheet as a reference. Data: `data/pr_check_txy_1.013bar.csv`.
 
 **Model for the column runs: Wilson.** It ties NRTL on composition and avoids NRTL's false liquid split.
 
@@ -77,12 +77,35 @@ Both models at all 9 sweep pressures (results in `data/azeotrope_by_pressure.csv
 - Above 100 °C DWSIM shows T to 0.001 °C, so x_azeotrope from 4 bar up is good to about ±0.002.
 - The check uses 1.0 bar and the sweep 1.013 bar; Wilson's x_azeotrope differs by 0.10 mol% between them.
 
-## Repository layout
+## Repository structure
 
-- `data/`: Txy tables, azeotrope results and `thf.db`
-- `src/`, `sql/`: azeotrope finder, SQLite loader, table and view definitions
-- `flowsheets/txy_envelopes.dwxmz`: DWSIM file with all Txy envelopes
-- `figures/txy_<model>_<P>bar.png`: Txy diagrams
+<details>
+<summary>Show folder layout</summary>
+
+```
+thf-solvent-recovery/
+├── data/                          # Txy tables, azeotrope results and the SQLite database
+│   ├── txy_<model>_<P>bar.csv
+│   ├── pr_check_txy_1.013bar.csv
+│   ├── azeotrope_validation.csv
+│   ├── azeotrope_by_pressure.csv
+│   └── thf.db
+├── sql/                           # table and view definitions
+│   ├── azeotropes.sql
+│   └── column_specs.sql
+├── src/                           # Python scripts
+│   ├── settings.py
+│   ├── find_azeotrope.py
+│   └── load_azeotropes.py
+├── flowsheets/                    # DWSIM files
+│   ├── txy_envelopes.dwxmz
+│   └── base_1.013bar.dwxmz
+├── figures/                       # Txy diagrams, txy_<model>_<P>bar.png
+├── docs/                          # empty for now
+└── README.md
+```
+
+</details>
 
 ## Sources
 
