@@ -11,7 +11,7 @@ Using DWSIM, Python and SQLite, I:
 3. Store every run, including failures, in SQLite with a mass balance check.
 4. Find how top purity, reflux and reboiler duty change with pressure.
 
-**Setup:** DWSIM Patreon 10.2.16, Wilson property package, feed 6 wt% THF at 100 kmol/h, 17 stages with feed on stage 13 and a total condenser (feed and column from the FOSSEE flowsheet based on Luyben 2008).
+**Setup:** DWSIM Patreon 10.2.16, Wilson property package, feed 2000 kmol/h at 6 mol% THF, 17 stages with feed on stage 14 and a total condenser (feed and column from ChemSep's example flowsheet of Luyben's 2008 design).
 
 ## Model check
 
@@ -68,7 +68,7 @@ Both models at all 9 sweep pressures (results in `data/azeotrope_by_pressure.csv
 - The azeotrope drops fastest at low pressure: 0.058 per bar up to 1.5 bar, 0.014 per bar from 7 to 8 bar.
 - The models agree on x at both ends and differ by up to 0.0055 at 2 to 4 bar. NRTL's T_azeotrope is lower by 0.03 °C at 1.013 bar, growing to 1.77 °C at 8 bar.
 - NRTL's flat bubble line shrinks to x = 0.20 to 0.31 at 3 bar and is gone from 4 bar.
-- For 90% THF recovery at Wilson's azeotrope, D = 0.9 x F x z_THF / x_azeotrope rises from 1.695 to 2.177 kmol/h, and B = 100 - D (`column_specs` view). 90% is my choice, leaving room for the top to reach the azeotrope.
+- For 90% THF recovery at Wilson's azeotrope, D = 0.9 x F x z_THF / x_azeotrope rises from 129.559 to 166.410 kmol/h, and B = 2000 - D (`column_specs` view). 90% is my choice, leaving room for the top to reach the azeotrope.
 
 ### Limitations
 
@@ -86,7 +86,8 @@ Both models at all 9 sweep pressures (results in `data/azeotrope_by_pressure.csv
 ## Sources
 
 - AIDIC CET Vol. 61: https://www.aidic.it/cet/17/61/235.pdf
-- FOSSEE THF/water flowsheet (based on Luyben 2008): https://om.fossee.in/chemical/flowsheeting-project/download/abstract-file/77
+- ChemSep example flowsheet `THF_Water_iecr47p2681.fsd` (Luyben, Ind. Eng. Chem. Res. 2008, 47, 2681): http://www.chemsep.com/downloads
+- FOSSEE OpenModelica flowsheet of the same design (its abstract says mass fraction 0.06; its code uses mole fraction 0.06, as ChemSep does): https://om.fossee.in/chemical/flowsheeting-project/om-flowsheet-run/77
 - Wilson, G. M. J. Am. Chem. Soc. 1964, 86, 127: https://doi.org/10.1021/ja01056a002
 - Matouš, J. et al. Collect. Czech. Chem. Commun. 1972, 37, 2653: https://doi.org/10.1135/cccc19722653 (cited through the next two)
 - J. Chem. Eng. Data 2023, 68, 349: https://doi.org/10.1021/acs.jced.2c00593

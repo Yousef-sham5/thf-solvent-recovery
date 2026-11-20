@@ -38,6 +38,6 @@ print(conn.execute("SELECT p_bar, x_azeotrope FROM azeotropes WHERE property_pac
 # Expected output: [(1.013, 0.8336), ... (8.0, 0.649)]
 
 print(conn.execute("SELECT * FROM column_specs").fetchall())
-# Expected output: [(1.013, 0.8336, 1.695, 98.305), ... (8.0, 0.649, 2.177, 97.823)]
+# Expected output: [(1.013, 0.8336, 129.559, 1870.441), ... (8.0, 0.649, 166.41, 1833.59)]
 
 conn.close()
