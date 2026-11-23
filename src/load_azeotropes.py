@@ -5,24 +5,24 @@ from settings import P_GRID
 conn = sqlite3.connect("data/thf.db")
 
 with open("sql/azeotropes.sql", "r", encoding="utf-8") as sql_file:
-  conn.executescript(sql_file.read())
+    conn.executescript(sql_file.read())
+
+with open("sql/column_specs.sql", "r", encoding="utf-8") as sql_file:
+    conn.executescript(sql_file.read())
 
 with open("data/azeotrope_by_pressure.csv", "r", newline="", encoding="utf-8-sig") as csv_file:
-  rows = list(csv.DictReader(csv_file))
+    rows = list(csv.DictReader(csv_file))
 
-  for row in rows:
-    p = float(row['P_bar'])
+    for row in rows:
+        p = float(row['P_bar'])
 
-    if p not in P_GRID:
-      raise ValueError(f"{p} bar is not in P_GRID")
+        if p not in P_GRID:
+            raise ValueError(f"{p} bar is not in P_GRID")
     
-    conn.execute("INSERT INTO azeotropes (property_package, p_bar, x_azeotrope, T_azeotrope) VALUES (?, ?, ?, ?)", (row['property_package'], p, float(row['x_azeotrope']), float(row['T_azeotrope'])))
+        conn.execute("INSERT INTO azeotropes (property_package, p_bar, x_azeotrope, T_azeotrope) VALUES (?, ?, ?, ?)", (row['property_package'], p, float(row['x_azeotrope']), float(row['T_azeotrope'])))
 
 
 conn.commit()
-
-with open("sql/column_specs.sql", "r", encoding="utf-8") as sql_file:
-  conn.executescript(sql_file.read())
 
 # TESTS
 print(conn.execute("SELECT COUNT(*) FROM azeotropes").fetchone()) 
