@@ -7,11 +7,11 @@ THF is a common pharmaceutical solvent that often ends up mixed with water. THF 
 Using DWSIM, Python and SQLite, I:
 
 1. Check which DWSIM model predicts the azeotrope correctly and map it across pressure.
-2. Run one column over 9 pressures (1.013 to 8 bar) x 6 reflux ratios x 2 stage counts = 108 runs.
-3. Store every run, including failures, in SQLite with a mass balance check.
-4. Find how top purity, reflux and reboiler duty change with pressure.
+2. Run one column over 9 pressures (1.013 to 8 bar) x 9 reflux ratios (0.25 to 12) x 2 stage counts (17, 25) = 162 runs.
+3. Store every run, including failures, in SQLite with a THF balance check. Done: 160 of 162 runs converged.
+4. Find how top purity, minimum reflux and reboiler duty change with pressure (in progress).
 
-**Setup:** DWSIM Patreon 10.2.16, Wilson property package, feed 2000 kmol/h at 6 mol% THF, 17 stages with feed on stage 14 and a total condenser (feed and column from ChemSep's example flowsheet of Luyben's 2008 design).
+**Setup:** DWSIM Patreon 10.2.16, Wilson property package, feed 2000 kmol/h at 6 mol% THF, 17 stages with feed on stage 14 and a total condenser (feed and column from ChemSep's example flowsheet of Luyben's 2008 design). The 25-stage column feeds on stage 21, scaled from 14/17 (my assumption).
 
 ## Model check
 
@@ -50,9 +50,8 @@ The azeotrope is the minimum of the bubble curve (x = y, Gibbs-Konovalov). `src/
 1. **Wilson and NRTL match the reference within 1%.** At 8 bar, T rises from the azeotrope toward pure THF, so pure THF leaves the bottom of an 8 bar column.
 2. **Checks:** the water end matches the steam tables (99.61 °C at 1 bar; 170.5 vs 170.41 °C at 8 bar), and the measured 1 atm azeotrope is at 63.43 °C (Matouš et al. 1972, as cited in J. Chem. Eng. Data 2023) vs 64.07 °C from Wilson at 1.013 bar.
 3. **UNIQUAC predicts two liquid phases.** Its bubble temperature is flat from x = 0.04 to 0.83 at 1 bar, which by the phase rule means two liquids plus vapor. Real THF-water is miscible there and only splits in a closed loop around 344 to 410 K (Matouš et al. 1972, as cited in a thermal analysis study; Smith et al. 2016), so I ruled UNIQUAC out.
-4. **NRTL does the same on a smaller scale:** flat at 64.95 °C for x = 0.10 to 0.42 at 1 bar, matching the split its Gibbs energy of mixing predicts (0.096 to 0.422). My guess is the parameters were fitted to VLE data only.
-5. **Wilson can't predict two liquid phases** (Wilson 1964). It would miss a real split, but so does NRTL.
-6. **Peng-Robinson needs a fitted kij, and DWSIM has none for THF-water (kij = 0).** The FOSSEE DWSIM flowsheet of this process uses PR, so I ran it at 1.013 bar. The bubble point jumps from 94.96 °C at x = 0.11 to -65.85 °C at x = 0.12, the bubble and dew curves never meet, and the dew curve has a sharp minimum at y = 0.80 and 62.30 °C, the shape of vapor over two liquid phases. I ruled PR out and don't use that flowsheet as a reference. Data: `data/pr_check_txy_1.013bar.csv`.
+4. **NRTL does the same on a smaller scale:** flat at 64.95 °C for x = 0.10 to 0.42 at 1 bar, matching the split its Gibbs energy of mixing predicts (0.096 to 0.422). My guess is the parameters were fitted to VLE data only. **Wilson can't predict two liquid phases** (Wilson 1964), so it would miss a real split, but so does NRTL.
+5. **Peng-Robinson needs a fitted kij, and DWSIM has none for THF-water (kij = 0).** The FOSSEE DWSIM flowsheet of this process uses PR, so I ran it at 1.013 bar. The bubble point jumps from 94.96 °C at x = 0.11 to -65.85 °C at x = 0.12, the bubble and dew curves never meet, and the dew curve has a sharp minimum at y = 0.80 and 62.30 °C, the shape of vapor over two liquid phases. I ruled PR out and don't use that flowsheet as a reference. Data: `data/pr_check_txy_1.013bar.csv`.
 
 **Model for the column runs: Wilson.** It ties NRTL on composition and avoids NRTL's false liquid split.
 
@@ -87,16 +86,17 @@ thf-solvent-recovery/
 ├── data/                          # Txy tables, azeotrope results and the SQLite database
 │   ├── txy_<model>_<P>bar.csv
 │   ├── pr_check_txy_1.013bar.csv
+│   ├── manual_runs.csv
 │   ├── azeotrope_validation.csv
 │   ├── azeotrope_by_pressure.csv
 │   └── thf.db
-├── sql/                           # table and view definitions
-│   ├── azeotropes.sql
-│   └── column_specs.sql
+├── sql/                           # azeotropes.sql, column_specs.sql, runs.sql
 ├── src/                           # Python scripts
 │   ├── settings.py
 │   ├── find_azeotrope.py
-│   └── load_azeotropes.py
+│   ├── load_azeotropes.py
+│   ├── run_case.py
+│   └── sweep.py
 ├── flowsheets/                    # DWSIM files
 │   ├── txy_envelopes.dwxmz
 │   └── base_1.013bar.dwxmz
