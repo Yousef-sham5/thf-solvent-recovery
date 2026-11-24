@@ -23,11 +23,11 @@ def read_table(path) -> tuple[list, list]:
     tb = [] # bubble temperature
 
     with open(path, newline="", encoding="utf-8-sig") as file:
-        reader = list(csv.DictReader(file))
+        rows = list(csv.DictReader(file))
 
-    for i in reader:
-        x.append(float(i['x_THF']))
-        tb.append(float(i['T_bubble_C']))
+    for row in rows:
+        x.append(float(row['x_THF']))
+        tb.append(float(row['T_bubble_C']))
 
     return x, tb
 
