@@ -1,80 +1,106 @@
-# THF-Water Distillation: Pressure Effects on the Azeotrope Limit
+# THF-Water Distillation: Pressure, the Azeotrope and Reboiler Duty
 
 ## Overview
 
-THF is a common pharmaceutical solvent that often ends up mixed with water. THF and water form a minimum-boiling azeotrope, so one column can't produce pure THF, but the azeotrope shifts with pressure, which is what pressure-swing distillation uses.
+THF is a common pharmaceutical solvent that often ends up mixed with water. THF and water form a minimum-boiling azeotrope, so one column can't produce pure THF, but the azeotrope shifts with pressure, which is what pressure-swing distillation uses. Before designing that process, I mapped what a single column can do at each pressure.
 
 Using DWSIM, Python and SQLite, I:
 
-1. Check which DWSIM model predicts the azeotrope correctly and map it across pressure.
-2. Run one column over 9 pressures (1.013 to 8 bar) x 9 reflux ratios (0.25 to 12) x 2 stage counts (17, 25) = 162 runs.
-3. Store every run, including failures, in SQLite with a THF balance check. Done: 160 of 162 runs converged.
-4. Find how top purity, minimum reflux and reboiler duty change with pressure (in progress).
+1. Checked which DWSIM model predicts the azeotrope correctly and mapped it from 1.013 to 8 bar.
+2. Ran one column over 9 pressures x 9 reflux ratios (0.25 to 12) x 2 stage counts (17, 25) = 162 runs from Python, storing every run, failures included, in SQLite with a THF balance check.
+3. Used SQL to find the best top purity at each pressure, the smallest reflux ratio that reaches it, and its reboiler duty.
 
-**Setup:** DWSIM Patreon 10.2.16, Wilson property package, feed 2000 kmol/h at 6 mol% THF, 17 stages with feed on stage 14 and a total condenser (feed and column from ChemSep's example flowsheet of Luyben's 2008 design). The 25-stage column feeds on stage 21, scaled from 14/17 (my assumption).
+**Key results**
+
+- The azeotrope moves from 83.4 to 64.9 mol% THF between 1.013 and 8 bar (Wilson, within 1% of a published Aspen Plus result), and the column top stops at it at every pressure.
+- The lowest reboiler duty that reaches the top-purity plateau is 2831 kW at 2 bar, 25 stages, RR 0.75: 6.1% below 1.013 bar and 10.3% below 8 bar.
+- 25 stages instead of 17 cut that duty by 10 to 35% by reaching the plateau at a lower reflux ratio.
+- 160 of 162 runs converged; the sweep reproduces my 8 manual DWSIM runs to every displayed digit.
+
+**Setup:** DWSIM Patreon 10.2.16, Wilson property package, feed 2000 kmol/h at 6 mol% THF, 17 stages with feed on stage 14 and a total condenser (from ChemSep's example flowsheet of Luyben's 2008 design). The 25-stage column feeds on stage 21, scaled from 14/17 (my assumption).
 
 ## Model check
 
 If the thermodynamic model is wrong, the column still converges and every result is quietly wrong, so I checked the azeotrope first.
 
-**Method.** Txy diagrams from DWSIM's Binary Phase Envelope (VLE, Δx = 0.01) at 1.0 and 8.0 bar, the pressures in the reference paper (AIDIC CET Vol. 61), for the three models with THF-water parameters in DWSIM's database, unchanged:
+**Method.** Txy diagrams from DWSIM's Binary Phase Envelope (VLE, Δx = 0.01) at 1.0 and 8.0 bar (the pressures in AIDIC CET Vol. 61) for the three models with stored THF-water parameters, unchanged (Wilson: a12 = 1140.72, a21 = 1819.40 cal/mol). The azeotrope is the minimum of the bubble curve; `src/find_azeotrope.py` finds where ΔT/Δx changes sign and interpolates.
 
-| Model | a12 (cal/mol) | a21 (cal/mol) | α12 |
+| Model | x_azeotrope, 1.0 bar (ref. 0.829) | x_azeotrope, 8.0 bar (ref. 0.655) | Liquid phases |
 |---|---|---|---|
-| NRTL | 915.7450 | 1725.0977 | 0.4522 |
-| UNIQUAC | 835.2626 | 10.5163 | n/a |
-| Wilson | 1140.7179 | 1819.4033 | n/a |
+| **Wilson** | 0.8346 (**0.68%**) | 0.649 ± 0.002 (**0.92%**) | one |
+| NRTL | 0.8342 (0.63%) | 0.650 ± 0.002 (0.76%) | one |
+| UNIQUAC | 0.787* (5.07%) | 0.633* (3.36%) | two |
 
-The azeotrope is the minimum of the bubble curve (x = y, Gibbs-Konovalov). `src/find_azeotrope.py` finds where the slope ΔT/Δx changes sign and interpolates, or takes the midpoint if the two lowest points are equal. Difference = |DWSIM - reference| / reference x 100.
+\* Vapor over two liquid phases, so not a normal azeotrope. Data: `data/azeotrope_validation.csv`; all Txy diagrams in `figures/`.
 
-### Results
+![Figure 1](figures/fig1_txy_validation.png)
 
-| Model | P (bar) | T_azeotrope (°C) | x_azeotrope (THF) | Reference | Difference | Liquid phases |
-|---|---|---|---|---|---|---|
-| **Wilson** | 1.0 | 63.69 | 0.8346 | 0.829 | **0.68%** | one |
-| **Wilson** | 8.0 | 138.96 | 0.649 ± 0.002 | 0.655 | **0.92%** | one |
-| NRTL | 1.0 | 63.67 | 0.8342 | 0.829 | 0.63% | one |
-| NRTL | 8.0 | 137.19 | 0.650 ± 0.002 | 0.655 | 0.76% | one |
-| UNIQUAC | 1.0 | 62.06 | 0.787* | 0.829 | 5.07% | two |
-| UNIQUAC | 8.0 | 133.97 | 0.633* | 0.655 | 3.36% | two |
-
-\* Vapor composition over two liquid phases, so not a normal azeotrope. Data: `data/azeotrope_validation.csv`.
-
-| | Wilson | NRTL | UNIQUAC |
-|---|---|---|---|
-| **1 bar** | ![Wilson 1 bar](figures/txy_wilson_1bar.png) | ![NRTL 1 bar](figures/txy_nrtl_1bar.png) | ![UNIQUAC 1 bar](figures/txy_uniquac_1bar.png) |
-| **8 bar** | ![Wilson 8 bar](figures/txy_wilson_8bar.png) | ![NRTL 8 bar](figures/txy_nrtl_8bar.png) | ![UNIQUAC 8 bar](figures/txy_uniquac_8bar.png) |
+*Figure 1. Wilson Txy at 1.013 and 8 bar with the published azeotropes, placed at Wilson's T_azeotrope since the paper gives composition only. The low one is at 1.0 bar, where Wilson's x_azeotrope is 0.10 mol% above its 1.013 bar value.*
 
 ### What I found
 
 1. **Wilson and NRTL match the reference within 1%.** At 8 bar, T rises from the azeotrope toward pure THF, so pure THF leaves the bottom of an 8 bar column.
-2. **Checks:** the water end matches the steam tables (99.61 °C at 1 bar; 170.5 vs 170.41 °C at 8 bar), and the measured 1 atm azeotrope is at 63.43 °C (Matouš et al. 1972, as cited in J. Chem. Eng. Data 2023) vs 64.07 °C from Wilson at 1.013 bar.
-3. **UNIQUAC predicts two liquid phases.** Its bubble temperature is flat from x = 0.04 to 0.83 at 1 bar, which by the phase rule means two liquids plus vapor. Real THF-water is miscible there and only splits in a closed loop around 344 to 410 K (Matouš et al. 1972, as cited in a thermal analysis study; Smith et al. 2016), so I ruled UNIQUAC out.
-4. **NRTL does the same on a smaller scale:** flat at 64.95 °C for x = 0.10 to 0.42 at 1 bar, matching the split its Gibbs energy of mixing predicts (0.096 to 0.422). My guess is the parameters were fitted to VLE data only. **Wilson can't predict two liquid phases** (Wilson 1964), so it would miss a real split, but so does NRTL.
-5. **Peng-Robinson needs a fitted kij, and DWSIM has none for THF-water (kij = 0).** The FOSSEE DWSIM flowsheet of this process uses PR, so I ran it at 1.013 bar. The bubble point jumps from 94.96 °C at x = 0.11 to -65.85 °C at x = 0.12, the bubble and dew curves never meet, and the dew curve has a sharp minimum at y = 0.80 and 62.30 °C, the shape of vapor over two liquid phases. I ruled PR out and don't use that flowsheet as a reference. Data: `data/pr_check_txy_1.013bar.csv`.
+2. **Checks:** the water end matches the steam tables (170.5 vs 170.41 °C at 8 bar), and the measured 1 atm azeotrope is at 63.43 °C (Matouš et al. 1972, cited in J. Chem. Eng. Data 2023) vs 64.07 °C from Wilson.
+3. **UNIQUAC predicts two liquid phases** (flat bubble line, x = 0.04 to 0.83 at 1 bar), but real THF-water only splits in a closed loop around 344 to 410 K (Matouš et al. 1972; Smith et al. 2016), so I ruled it out. NRTL shows a smaller false split (x = 0.10 to 0.42 at 1 bar). Wilson can't predict two liquids at all (Wilson 1964).
+4. **Peng-Robinson has no THF-water kij in DWSIM**, and its bubble and dew curves never meet at 1.013 bar (`data/pr_check_txy_1.013bar.csv`), so I ruled it out.
 
-**Model for the column runs: Wilson.** It ties NRTL on composition and avoids NRTL's false liquid split.
-
-## Azeotrope at the sweep pressures
-
-Both models at all 9 sweep pressures (results in `data/azeotrope_by_pressure.csv` and `data/thf.db`):
+**Model for the column runs: Wilson.** It ties NRTL on composition without NRTL's false liquid split.
 
 | P (bar) | 1.013 | 1.5 | 2 | 3 | 4 | 5 | 6 | 7 | 8 |
 |---|---|---|---|---|---|---|---|---|---|
-| x_azeotrope, Wilson | 0.8336 | 0.8052 | 0.7822 | 0.7467 | 0.7200 | 0.6975 | 0.6775 | 0.6625 | 0.6490 |
-| x_azeotrope, NRTL | 0.8330 | 0.8016 | 0.7772 | 0.7412 | 0.7150 | 0.6950 | 0.6775 | 0.6625 | 0.6500 |
-| T_azeotrope (°C), Wilson | 64.07 | 76.07 | 85.45 | 99.60 | 110.35 | 119.13 | 126.60 | 133.13 | 138.96 |
+| x_azeotrope | 0.8336 | 0.8052 | 0.7822 | 0.7467 | 0.7200 | 0.6975 | 0.6775 | 0.6625 | 0.6490 |
+| T_azeotrope (°C) | 64.07 | 76.07 | 85.45 | 99.60 | 110.35 | 119.13 | 126.60 | 133.13 | 138.96 |
 
-- The azeotrope drops fastest at low pressure: 0.058 per bar up to 1.5 bar, 0.014 per bar from 7 to 8 bar.
-- The models agree on x at both ends and differ by up to 0.0055 at 2 to 4 bar. NRTL's T_azeotrope is lower by 0.03 °C at 1.013 bar, growing to 1.77 °C at 8 bar.
-- NRTL's flat bubble line shrinks to x = 0.20 to 0.31 at 3 bar and is gone from 4 bar.
-- For 90% THF recovery at Wilson's azeotrope, D = 0.9 x F x z_THF / x_azeotrope rises from 129.559 to 166.410 kmol/h, and B = 2000 - D (`column_specs` view). 90% is my choice, leaving room for the top to reach the azeotrope.
+For 90% THF recovery at the azeotrope, D = 0.9 x F x z_THF / x_azeotrope rises from 129.6 to 166.4 kmol/h, with B = 2000 - D (`column_specs` view).
+
+## Column sweep
+
+**Method.** `src/run_case.py` solves the column through DWSIM's Python API for one pressure, reflux ratio (RR), stage count (N) and bottoms flow. `src/sweep.py` runs the grid and writes every run to the `runs` table in `data/thf.db`. Queries: `sql/queries.sql`.
+
+**Quality checks.**
+
+- **Validation:** matches my 8 manual DWSIM runs (N 17, RR 2 and 5, at 1.013, 3, 5 and 8 bar; `data/manual_runs.csv`).
+- **Failures:** 2 of 162 runs hit the solver's iteration limit (N 25, RR 0.25, 3 and 4 bar). I didn't rerun them (cause unconfirmed); no result uses RR 0.25.
+- **THF balance:** relative error below 1e-9 in 154 of 160 converged runs; the other six are at RR 0.25 (worst 1.8e-5).
+- **Recovery:** 89.7 to 90.2% from RR 0.75 up, limited by x_azeotrope precision. Below RR 0.75 the top falls short (80 to 89.8% recovery).
+
+**Smallest grid RR** is the lowest RR on my grid where the top reaches 99.9% of that pressure's plateau (top composition at 25 stages, RR 12). It is a definition I chose and an upper bound on the true minimum reflux.
+
+| P (bar) | 1.013 | 1.5 | 2 | 3 | 4 | 5 | 6 | 7 | 8 |
+|---|---|---|---|---|---|---|---|---|---|
+| Best top x_THF | 0.8338 | 0.8053 | 0.7823 | 0.7469 | 0.7197 | 0.6975 | 0.6788 | 0.6626 | 0.6484 |
+| Smallest grid RR, N 17 | 2 | 2 | 2 | 1 | 1 | 1 | 1 | 1 | 1 |
+| Q_reb (kW) | 4174 | 4274 | 4359 | 3226 | 3296 | 3362 | 3429 | 3472 | 3514 |
+| Smallest grid RR, N 25 | 1 | 1 | 0.75 | 0.75 | 0.75 | 0.75 | 0.75 | 0.75 | 0.75 |
+| Q_reb (kW) | 3015 | 3082 | **2831** | 2908 | 2968 | 3025 | 3083 | 3120 | 3155 |
+
+![Figure 2](figures/fig2_top_thf_vs_pressure.png)
+
+*Figure 2. Best top x_THF (any N, RR) vs Wilson's x_azeotrope; ratio 0.999 to 1.002.*
+
+| N 17 | N 25 |
+|---|---|
+| ![Figure 3a](figures/fig3a_duty_vs_rr_n17_log.png) | ![Figure 3b](figures/fig3b_duty_vs_rr_n25_log.png) |
+
+*Figure 3. Reboiler duty vs RR (log axis; linear versions in `figures/`). Markers show the smallest grid RR and overlap because at RR 0.75 to 2 the nine pressures are only 430 to 780 kW apart. For N 25, the 3 and 4 bar lines start at RR 0.5.*
+
+### What I found
+
+1. **The azeotrope caps the top purity** (Figure 2). The cap falls from 0.834 to 0.648 with pressure, which a second column at another pressure exploits.
+2. **Reflux past the plateau wastes energy.** Duty rises almost linearly with RR (about 1160 kW per unit RR at 1.013 bar, since vapor flow = (RR + 1) x D); at 2 bar, RR 12 costs 5.9 times the duty of RR 0.75 for the last 0.1%.
+3. **Pressure has two competing effects.** Higher pressure reaches its plateau at a lower RR, but needs a larger D for the same recovery. They balance at 2 bar. Why the required RR falls with pressure is unconfirmed.
+4. **More stages save energy only through lower reflux:** at the same RR, N 17 and N 25 use the same duty (within 0.4 kW from RR 2 up).
 
 ### Limitations
 
-- The reference is an Aspen Plus NRTL result, so the check is model vs model. I found no measured azeotrope composition or temperature above 1 atm.
+- The reference is an Aspen Plus NRTL result, so the model check is model vs model; I found no measured azeotrope above 1 atm.
 - Above 100 °C DWSIM shows T to 0.001 °C, so x_azeotrope from 4 bar up is good to about ±0.002.
-- The check uses 1.0 bar and the sweep 1.013 bar; Wilson's x_azeotrope differs by 0.10 mol% between them.
+- The RR grid is coarse (nothing between 0.75 and 1); a finer grid could move the 2 bar result.
+- I compared reboiler duty only: no column sizing, cost or other feed compositions.
+
+## Reproducing
+
+From the repo root, `python src/plot_fig1_txy.py` (and fig 2, 3) rebuilds a figure from `data/`. `src/sweep.py` needs DWSIM and rebuilds the `runs` table.
 
 ## Repository structure
 
@@ -83,25 +109,12 @@ Both models at all 9 sweep pressures (results in `data/azeotrope_by_pressure.csv
 
 ```
 thf-solvent-recovery/
-├── data/                          # Txy tables, azeotrope results and the SQLite database
-│   ├── txy_<model>_<P>bar.csv
-│   ├── pr_check_txy_1.013bar.csv
-│   ├── manual_runs.csv
-│   ├── azeotrope_validation.csv
-│   ├── azeotrope_by_pressure.csv
-│   └── thf.db
-├── sql/                           # azeotropes.sql, column_specs.sql, runs.sql
-├── src/                           # Python scripts
-│   ├── settings.py
-│   ├── find_azeotrope.py
-│   ├── load_azeotropes.py
-│   ├── run_case.py
-│   └── sweep.py
-├── flowsheets/                    # DWSIM files
-│   ├── txy_envelopes.dwxmz
-│   └── base_1.013bar.dwxmz
-├── figures/                       # Txy diagrams, txy_<model>_<P>bar.png
-├── docs/                          # empty for now
+├── data/          # Txy tables, azeotrope results, manual_runs.csv, thf.db
+├── sql/           # table definitions and queries.sql
+├── src/           # find_azeotrope.py, run_case.py, sweep.py, plot_fig*.py and helpers
+├── flowsheets/    # txy_envelopes.dwxmz, base_1.013bar.dwxmz
+├── figures/       # fig1 to fig3, Txy diagrams txy_<model>_<P>bar.png
+├── docs/          # empty for now
 └── README.md
 ```
 
@@ -111,8 +124,8 @@ thf-solvent-recovery/
 
 - AIDIC CET Vol. 61: https://www.aidic.it/cet/17/61/235.pdf
 - ChemSep example flowsheet `THF_Water_iecr47p2681.fsd` (Luyben, Ind. Eng. Chem. Res. 2008, 47, 2681): http://www.chemsep.com/downloads
-- FOSSEE OpenModelica flowsheet of the same design (its abstract says mass fraction 0.06; its code uses mole fraction 0.06, as ChemSep does): https://om.fossee.in/chemical/flowsheeting-project/om-flowsheet-run/77
-- FOSSEE DWSIM flowsheet of the same process (Peng-Robinson package): https://dwsim.fossee.in/flowsheeting-project/dwsim-flowsheet-run/102
+- FOSSEE OpenModelica flowsheet of the same design (abstract says mass fraction 0.06, code uses mole fraction): https://om.fossee.in/chemical/flowsheeting-project/om-flowsheet-run/77
+- FOSSEE DWSIM flowsheet (Peng-Robinson): https://dwsim.fossee.in/flowsheeting-project/dwsim-flowsheet-run/102
 - Wilson, G. M. J. Am. Chem. Soc. 1964, 86, 127: https://doi.org/10.1021/ja01056a002
 - Matouš, J. et al. Collect. Czech. Chem. Commun. 1972, 37, 2653: https://doi.org/10.1135/cccc19722653 (cited through the next two)
 - J. Chem. Eng. Data 2023, 68, 349: https://doi.org/10.1021/acs.jced.2c00593
