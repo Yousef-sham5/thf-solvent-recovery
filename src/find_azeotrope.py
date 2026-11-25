@@ -193,7 +193,7 @@ if __name__ == "__main__":
 
         x0, T0 = calc_azeotrope(x, tb, s, m, k, j)
 
-        print(f"{model:<7}{p:>6} bar   x_azeotrope = {x0:.4f}   T_azeotrope = {T0:.2f} C")
+        print(f"{model:<7}{p:>6} bar   x_azeotrope = {x0:.4f}   T_azeotrope = {T0:.2f} °C")
 
         rows.append([model, p, f"{x0:.4f}", f"{T0:.2f}"])
 
